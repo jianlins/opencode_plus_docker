@@ -1,6 +1,6 @@
 # opencode_plus Docker Build Workflow
 
-This repository contains the build configuration for `brokenjade/opencode_plus`, a Docker image based on [`ghcr.io/anomalyco/opencode`](https://github.com/anomalyco/opencode) with additional development tools preinstalled.
+This repository contains the build configuration for `[brokenjade/opencode_plus](https://hub.docker.com/r/brokenjade/opencode_plus)`, a Docker image based on [`ghcr.io/anomalyco/opencode`](https://github.com/anomalyco/opencode) with additional development tools preinstalled.
 
 # OpenCode Plus
 
