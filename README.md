@@ -131,7 +131,3 @@ To build and publish your own customized image with this workflow, add the follo
 ```bash
 docker build -t brokenjade/opencode_plus:local .
 ```
-
-## Running the container
-
-See [scripts/docker_opencode.md](scripts/docker_opencode.md) for first-run, restart, terminal access, and JupyterLab instructions.
