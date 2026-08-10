@@ -1,6 +1,6 @@
 # opencode_plus Docker 构建工作流
 
-本仓库包含 `[brokenjade/opencode_plus](https://hub.docker.com/r/brokenjade/opencode_plus)` 的构建配置。这是一个基于 [`ghcr.io/anomalyco/opencode`](https://github.com/anomalyco/opencode) 的 Docker 镜像，并预装了额外的开发工具。
+本仓库包含 [`brokenjade/opencode_plus`](https://hub.docker.com/r/brokenjade/opencode_plus) 的构建配置。这是一个基于 [`ghcr.io/anomalyco/opencode`](https://github.com/anomalyco/opencode) 的 Docker 镜像，并预装了额外的开发工具。
 
 # OpenCode Plus
 
