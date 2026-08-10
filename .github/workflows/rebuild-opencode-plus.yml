@@ -75,7 +75,7 @@ jobs:
 
       - name: Update Docker Hub description and readme
         if: steps.changed.outputs.changed == 'true'
-        uses: peterevans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
