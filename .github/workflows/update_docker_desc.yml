@@ -1,0 +1,24 @@
+name: Update Docker Hub Description
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-description:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout README
+        uses: actions/checkout@v4
+
+      - name: Update Docker Hub description and README
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: brokenjade/opencode_plus
+          readme-filepath: ./README.md
+          short-description: OpenCode Plus Docker image with zsh, git, curl, uv and Python 3.14 preinstalled
