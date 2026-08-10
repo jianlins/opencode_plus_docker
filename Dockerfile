@@ -16,7 +16,10 @@ RUN apk update \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && export PATH="/root/.local/bin:$PATH" \
     && uv python install 3.14 \
-    && apk cache clean
+    && uv cache clean \
+    && rm -rf /root/.cache/uv /root/.cache/pip /tmp/* \
+    && apk cache clean \
+    && rm -rf /var/cache/apk/*
 
 ENV PATH="/root/.local/bin:${PATH}"
 ENV UV_LINK_MODE=copy
