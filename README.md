@@ -5,7 +5,7 @@ This repository contains the build configuration for `brokenjade/opencode_plus`,
 # OpenCode Plus
 
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](https://github.com/jianlins/opencode_plus_docker/blob/main/README.md) | [简体中文](https://github.com/jianlins/opencode_plus_docker/blob/main/README.zh-CN.md)
 
 OpenCode Plus is a Docker image based on OpenCode with the following development tools preinstalled:
 
