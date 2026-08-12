@@ -50,14 +50,35 @@ OpenCode Plus 是一个基于 OpenCode 的 Docker 镜像，预装了以下开发
      brokenjade/opencode_plus \
      web --hostname 0.0.0.0 --port 4096
    ```
+   或者你可以把它包装成一个函数，写到~/.aliases
+   ```bash
+   docker-opencode() {
+      # Default port to 4096 on host if no argument is provided
+      local port="${1:-4096}"
+      docker run -d \
+         --name "$(basename "$PWD")" \
+         -v "$(pwd):$(pwd)" \
+         -v "$(pwd)/.container_bk/.local:/root/.local/" \
+         -v "$(pwd)/.container_bk/.config:/root/.config/" \
+         -p "${port}:4096" \
+         -e OPENCODE_SERVER_USERNAME="$OPENCODE_SERVER_USERNAME" \
+         -e OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
+         -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+         brokenjade/opencode_plus web --hostname 0.0.0.0 --port 4096
+   }
+   #在使用的时候就可以，简单地加一个端口参数或者不加（使用默认的4096）
+   docker-opencode 4088
+
+   ```
+   **注意**：此处已备份 OpenCode 数据库，并将其配置在项目文件夹的 .container_bk 目录下。当你想重新构建全新的容器，但又不想丢失 OpenCode 的历史记录和配置时，这会非常有用。
 
 4. 在浏览器中打开 OpenCode：
 
    ```text
-   http://localhost:4086
+   http://localhost:4096
    ```
 
-如果你设置了不同的 `port` 值，请将网址中的 `4086` 替换为你选择的端口。
+   如果你设置了不同的 `port` 值，请将网址中的 `4096` 替换为你选择的端口。
 
 ## 后续重启
 
@@ -72,7 +93,7 @@ docker restart "$(basename "$PWD")"
 然后再次在浏览器中打开：
 
 ```text
-http://localhost:4086
+http://localhost:4096
 ```
 
 ## 进入容器终端

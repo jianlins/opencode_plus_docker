@@ -51,14 +51,35 @@ Before starting, make sure you have:
      brokenjade/opencode_plus \
      web --hostname 0.0.0.0 --port 4096
    ```
+   or you can wrap it up into a bash function and save into ~/.aliases
+   ```bash
+   docker-opencode() {
+      # Default port to 4096 on host if no argument is provided
+      local port="${1:-4096}"
+      docker run -d \
+         --name "$(basename "$PWD")" \
+         -v "$(pwd):$(pwd)" \
+         -v "$(pwd)/.container_bk/.local:/root/.local/" \
+         -v "$(pwd)/.container_bk/.config:/root/.config/" \
+         -p "${port}:4096" \
+         -e OPENCODE_SERVER_USERNAME="$OPENCODE_SERVER_USERNAME" \
+         -e OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
+         -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+         brokenjade/opencode_plus web --hostname 0.0.0.0 --port 4096
+   }
+   #When using it, you can simple call or a port number without it(using default 4096)
+   docker-opencode 4088
+   ```
+   **Note**: This backs up the OpenCode database to your project's .container_bk folder. It is useful for rebuilding the container from scratch without losing your OpenCode history and configurations.
+
 
 4. Open OpenCode in your browser:
 
    ```text
-   http://localhost:4086
+   http://localhost:4096
    ```
 
-If you selected a different value for `port`, replace `4086` in the URL with the port you chose.
+   If you selected a different value for `port`, replace `4086` in the URL with the port you chose.
 
 ## Restart later
 
@@ -73,7 +94,7 @@ docker restart "$(basename "$PWD")"
 Then open the same address in your browser:
 
 ```text
-http://localhost:4086
+http://localhost:4096
 ```
 
 ## Open a terminal in the container
