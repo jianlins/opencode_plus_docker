@@ -63,14 +63,13 @@ OpenCode Plus 是一个基于 OpenCode 的 Docker 镜像，预装了以下开发
          -p "${port}:4096" \
          -e OPENCODE_SERVER_USERNAME="$OPENCODE_SERVER_USERNAME" \
          -e OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
-         -e OPENAI_API_KEY="$OPENAI_API_KEY" \
          brokenjade/opencode_plus web --hostname 0.0.0.0 --port 4096
    }
    #在使用的时候就可以，简单地加一个端口参数或者不加（使用默认的4096）
    docker-opencode 4088
 
    ```
-   **注意**：此处已备份 OpenCode 数据库，并将其配置在项目文件夹的 .container_bk 目录下。当你想重新构建全新的容器，但又不想丢失 OpenCode 的历史记录和配置时，这会非常有用。
+   **注意**：此操作会将 OpenCode 数据库备份到项目的 .container_bk 文件夹中。这适用于在不丢失 OpenCode 历史记录和配置的情况下，从头开始重新构建容器。此外，OPENCODE_SERVER_USERNAME 和 OPENCODE_SERVER_PASSWORD 是可选的；如果您不想使用它们，可以删除这两行，或者在宿主环境中进行配置。
 
 4. 在浏览器中打开 OpenCode：
 

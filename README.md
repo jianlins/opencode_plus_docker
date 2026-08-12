@@ -64,13 +64,13 @@ Before starting, make sure you have:
          -p "${port}:4096" \
          -e OPENCODE_SERVER_USERNAME="$OPENCODE_SERVER_USERNAME" \
          -e OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
-         -e OPENAI_API_KEY="$OPENAI_API_KEY" \
          brokenjade/opencode_plus web --hostname 0.0.0.0 --port 4096
    }
+
    #When using it, you can simple call or a port number without it(using default 4096)
    docker-opencode 4088
    ```
-   **Note**: This backs up the OpenCode database to your project's .container_bk folder. It is useful for rebuilding the container from scratch without losing your OpenCode history and configurations.
+   **Note**: This backs up the OpenCode database to your project's .container_bk folder. It is useful for rebuilding the container from scratch without losing your OpenCode history and configurations. Additionally, OPENCODE_SERVER_USERNAME and OPENCODE_SERVER_PASSWORD are optional; if you do not want to use them, you can remove these two lines or set them up in your host environment.
 
 
 4. Open OpenCode in your browser:
