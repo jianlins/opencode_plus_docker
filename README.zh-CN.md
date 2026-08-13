@@ -58,8 +58,8 @@ OpenCode Plus 是一个基于 OpenCode 的 Docker 镜像，预装了以下开发
       docker run -d \
          --name "$(basename "$PWD")" \
          -v "$(pwd):$(pwd)" \
-         -v "$(pwd)/.container_bk/.local:/root/.local/" \
-         -v "$(pwd)/.container_bk/.config:/root/.config/" \
+         -v "$(pwd)/.container_bk/.local/share/opencode:/root/.local/share/opencode" \
+         -v "$(pwd)/.container_bk/.config/opencode:/root/.config/opencode" \
          -p "${port}:4096" \
          -e OPENCODE_SERVER_USERNAME="$OPENCODE_SERVER_USERNAME" \
          -e OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
