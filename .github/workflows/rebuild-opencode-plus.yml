@@ -56,6 +56,20 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Get opencode version
+        id: version
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          RAW=$(docker run --rm --entrypoint opencode ${{ env.BASE_IMAGE }} --version 2>/dev/null || true)
+          # Keep only a clean semver-like token (also keeps sed/markdown safe)
+          VERSION=$(echo "$RAW" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*' | head -n1)
+          if [ -z "$VERSION" ]; then
+            echo "::warning::Could not determine opencode version (raw output: '$RAW')"
+            VERSION="unknown"
+          fi
+          echo "Detected opencode version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         if: steps.changed.outputs.changed == 'true'
         uses: docker/build-push-action@v6
@@ -70,8 +84,28 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.base.digest=${{ steps.changed.outputs.new_digest }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
+
+      - name: Prepare Docker Hub readme
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BUILD_DATE=$(date -u +%Y-%m-%d)
+          if grep -q '{{OPENCODE_VERSION}}' README.md; then
+            # Use the placeholder if the README has one
+            sed -e "s/{{OPENCODE_VERSION}}/${OPENCODE_VERSION}/g" \
+                -e "s/{{BUILD_DATE}}/${BUILD_DATE}/g" README.md > README.dockerhub.md
+          else
+            # Otherwise put a version banner at the top
+            {
+              echo "> **Bundled opencode version:** \`${OPENCODE_VERSION}\` · built ${BUILD_DATE} · build #${{ github.run_number }}"
+              echo
+              cat README.md
+            } > README.dockerhub.md
+          fi
 
       - name: Update Docker Hub description and readme
         if: steps.changed.outputs.changed == 'true'
@@ -80,8 +114,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE }}
-          readme-filepath: ./README.md
-          short-description: OpenCode Plus Docker image with zsh, git, curl, uv and Python 3.14 preinstalled
+          readme-filepath: ./README.dockerhub.md
+          short-description: OpenCode Plus (opencode v${{ steps.version.outputs.version }}) with zsh, git, curl, uv and Python 3.14 preinstalled
 
       - name: Skip - no base change
         if: steps.changed.outputs.changed == 'false'
