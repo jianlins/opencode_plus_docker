@@ -1,12 +1,17 @@
-name: Rebuild opencode_plus
+name: Rebuild agent workspace
 
 on:
+  push:
+    paths:
+      - Dockerfile
+      - docker/**
+      - .github/workflows/rebuild-opencode-plus.yml
   schedule:
-    - cron: '0 2 * * 0'
+    - cron: "0 2 * * 0"
   workflow_dispatch:
     inputs:
       force:
-        description: 'Force a rebuild even if the base image is unchanged'
+        description: Force a rebuild even when the OpenCode base image is unchanged
         required: false
         type: boolean
         default: false
@@ -37,38 +42,62 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Check if base image changed
-        id: changed
-        run: |
-          docker pull ${{ env.BASE_IMAGE }}
-          NEW_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' ${{ env.BASE_IMAGE }})
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
-          OLD_DIGEST=""
-          if docker pull ${{ env.IMAGE }}:latest 2>/dev/null; then
-            OLD_DIGEST=$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.base.digest"}}' ${{ env.IMAGE }}:latest)
+      - name: Get latest OpenHands Agent Canvas version
+        id: openhands
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(npm view @openhands/agent-canvas version)"
+          if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Unexpected OpenHands version from npm: ${version}" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to rebuild
+        id: changed
+        shell: bash
+        run: |
+          docker pull "${BASE_IMAGE}"
+          new_digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${BASE_IMAGE}")"
+
+          old_digest=""
+          old_openhands_version=""
+          if docker pull "${IMAGE}:latest" 2>/dev/null; then
+            old_digest="$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.base.digest"}}' "${IMAGE}:latest")"
+            old_openhands_version="$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.openhands.version"}}' "${IMAGE}:latest")"
           fi
 
-          echo "new_digest=$NEW_DIGEST" >> "$GITHUB_OUTPUT"
-          echo "old_digest=$OLD_DIGEST" >> "$GITHUB_OUTPUT"
-          if [ "$NEW_DIGEST" != "$OLD_DIGEST" ] || [ "${{ inputs.force }}" == "true" ]; then
+          echo "new_digest=${new_digest}" >> "$GITHUB_OUTPUT"
+          echo "old_digest=${old_digest}" >> "$GITHUB_OUTPUT"
+          echo "old_openhands_version=${old_openhands_version}" >> "$GITHUB_OUTPUT"
+
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] \
+            || [ "${{ inputs.force }}" = "true" ] \
+            || [ "${new_digest}" != "${old_digest}" ] \
+            || [ "${{ steps.openhands.outputs.version }}" != "${old_openhands_version}" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Get opencode version
+      - name: Get OpenCode version
         id: version
         if: steps.changed.outputs.changed == 'true'
+        shell: bash
         run: |
-          RAW=$(docker run --rm --entrypoint opencode ${{ env.BASE_IMAGE }} --version 2>/dev/null || true)
-          # Keep only a clean semver-like token (also keeps sed/markdown safe)
-          VERSION=$(echo "$RAW" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*' | head -n1)
-          if [ -z "$VERSION" ]; then
-            echo "::warning::Could not determine opencode version (raw output: '$RAW')"
-            VERSION="unknown"
+          raw="$(docker run --rm --entrypoint opencode "${BASE_IMAGE}" --version 2>/dev/null || true)"
+          version="$(echo "${raw}" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*' | head -n1)"
+          if [ -z "${version}" ]; then
+            echo "::warning::Could not determine OpenCode version"
+            version="unknown"
           fi
-          echo "Detected opencode version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         if: steps.changed.outputs.changed == 'true'
@@ -77,6 +106,8 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            OPENHANDS_AGENT_CANVAS_VERSION=${{ steps.openhands.outputs.version }}
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.run_number }}
@@ -85,6 +116,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.base.digest=${{ steps.changed.outputs.new_digest }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.openhands.version=${{ steps.openhands.outputs.version }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
 
@@ -92,16 +124,19 @@ jobs:
         if: steps.changed.outputs.changed == 'true'
         env:
           OPENCODE_VERSION: ${{ steps.version.outputs.version }}
+          OPENHANDS_VERSION: ${{ steps.openhands.outputs.version }}
+        shell: bash
         run: |
-          BUILD_DATE=$(date -u +%Y-%m-%d)
-          if grep -q '{{OPENCODE_VERSION}}' README.md; then
-            # Use the placeholder if the README has one
-            sed -e "s/{{OPENCODE_VERSION}}/${OPENCODE_VERSION}/g" \
-                -e "s/{{BUILD_DATE}}/${BUILD_DATE}/g" README.md > README.dockerhub.md
+          build_date="$(date -u +%Y-%m-%d)"
+          if grep -q '{{OPENCODE_VERSION}}\|{{OPENHANDS_VERSION}}' README.md; then
+            sed \
+              -e "s/{{OPENCODE_VERSION}}/${OPENCODE_VERSION}/g" \
+              -e "s/{{OPENHANDS_VERSION}}/${OPENHANDS_VERSION}/g" \
+              -e "s/{{BUILD_DATE}}/${build_date}/g" \
+              README.md > README.dockerhub.md
           else
-            # Otherwise put a version banner at the top
             {
-              echo "> **Bundled opencode version:** \`${OPENCODE_VERSION}\` · built ${BUILD_DATE} · build #${{ github.run_number }}"
+              echo "> **Bundled OpenCode:** \`${OPENCODE_VERSION}\` · **OpenHands Agent Canvas:** \`${OPENHANDS_VERSION}\` · built ${build_date} · build #${{ github.run_number }}"
               echo
               cat README.md
             } > README.dockerhub.md
@@ -115,8 +150,8 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE }}
           readme-filepath: ./README.dockerhub.md
-          short-description: OpenCode Plus (opencode v${{ steps.version.outputs.version }}) with zsh, git, curl, uv and Python 3.14 preinstalled
+          short-description: OpenCode Plus (OpenCode v${{ steps.version.outputs.version }} + OpenHands Agent Canvas v${{ steps.openhands.outputs.version }}) with zsh, git, curl, uv, and Python 3.14 preinstalled
 
-      - name: Skip - no base change
+      - name: Skip when unchanged
         if: steps.changed.outputs.changed == 'false'
-        run: echo "Base image unchanged (${{ steps.changed.outputs.old_digest }}), skipping rebuild."
+        run: echo "OpenCode and OpenHands versions are unchanged; skipping rebuild."
