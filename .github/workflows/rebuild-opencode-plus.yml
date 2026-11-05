@@ -24,7 +24,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # Needed to create the immutable GitHub Release and its build tag.
+      contents: write
 
     steps:
       - name: Checkout
@@ -151,6 +152,27 @@ jobs:
           repository: ${{ env.IMAGE }}
           readme-filepath: ./README.dockerhub.md
           short-description: OpenCode Plus (OpenCode v${{ steps.version.outputs.version }} + OpenHands Agent Canvas v${{ steps.openhands.outputs.version }}) with zsh, git, curl, uv, and Python 3.14 preinstalled
+
+      - name: Create GitHub image-build record
+        if: steps.changed.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: image-build-${{ github.run_number }}
+          name: Container build #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          body: |
+            ## Container image build
+
+            | Component | Version |
+            | --- | --- |
+            | OpenCode | `${{ steps.version.outputs.version }}` |
+            | OpenHands Agent Canvas | `${{ steps.openhands.outputs.version }}` |
+
+            - Docker image: `${{ env.IMAGE }}:${{ github.run_number }}`
+            - [Open this image tag on Docker Hub](https://hub.docker.com/r/${{ env.IMAGE }}/tags?name=${{ github.run_number }})
+            - Source revision: `${{ github.sha }}`
 
       - name: Skip when unchanged
         if: steps.changed.outputs.changed == 'false'
