@@ -9,6 +9,8 @@ ARG OPENHANDS_AGENT_CANVAS_VERSION=1.35.0
 RUN apk update \
     && apk add --no-cache \
         bash \
+        clang \
+        compiler-rt \
         curl \
         gcc \
         git \
@@ -21,6 +23,7 @@ RUN apk update \
         supervisor \
         zsh \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    # 后面保持不变
     && export PATH="/root/.local/bin:$PATH" \
     && uv python install 3.14 \
     && npm install --global "@openhands/agent-canvas@${OPENHANDS_AGENT_CANVAS_VERSION}" \
@@ -35,6 +38,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 ENV UV_LINK_MODE=copy
 ENV HOME=/root
 ENV PROJECTS_PATH=/projects
+ENV CC=clang
 
 WORKDIR /projects
 
